@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "DealDesk + BillPort API",
+    "description": "API collection for the DealDesk assignment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "dealDeskUrl", "value": "http://localhost:4000"},
+    {"key": "billPortUrl", "value": "http://localhost:4001"},
+    {"key": "sharedSecret", "value": "billport-super-secret-key-123"},
+    {"key": "token", "value": ""},
+    {"key": "customerId", "value": "REPLACE_WITH_CUSTOMER_ID"},
+    {"key": "productId", "value": "REPLACE_WITH_PRODUCT_ID"},
+    {"key": "dealId", "value": "REPLACE_WITH_DEAL_ID"},
+    {"key": "approvalId", "value": "REPLACE_WITH_APPROVAL_ID"},
+    {"key": "externalId", "value": "REPLACE_WITH_EXTERNAL_ID"},
+    {"key": "idempotencyKey", "value": "postman-test-invoice-001"}
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"aisha.khan@dealdesk.local\",\"password\":\"password123\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/auth/login"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  pm.collectionVariables.set('token', pm.response.json().token);",
+                "}"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "DealDesk - Deals",
+      "item": [
+        {
+          "name": "Create Deal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Postman Test Deal\",\"customerId\":\"{{customerId}}\",\"productId\":\"{{productId}}\",\"amount\":10000}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/deals"
+          }
+        },
+        {
+          "name": "List Deals",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{dealDeskUrl}}/deals"
+          }
+        },
+        {
+          "name": "Get Deal",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{dealDeskUrl}}/deals/{{dealId}}"
+          }
+        },
+        {
+          "name": "Request Discount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"discountPercentage\":15}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/deals/{{dealId}}/discount-request"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DealDesk - Approvals",
+      "item": [
+        {
+          "name": "Get Approval Configuration",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{dealDeskUrl}}/approvals/config"
+          }
+        },
+        {
+          "name": "Update Approval Configuration",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"bands\":[{\"minDiscount\":0,\"maxDiscount\":10,\"approverRoles\":[]},{\"minDiscount\":10,\"maxDiscount\":25,\"approverRoles\":[\"sales_manager\"]},{\"minDiscount\":25,\"maxDiscount\":40,\"approverRoles\":[\"sales_manager\",\"finance\"]},{\"minDiscount\":40,\"maxDiscount\":100,\"approverRoles\":[\"sales_manager\",\"finance\",\"admin\"]}]}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/approvals/config"
+          }
+        },
+        {
+          "name": "List Pending Approvals",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{dealDeskUrl}}/approvals/pending"
+          }
+        },
+        {
+          "name": "Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"remarks\":\"Approved through Postman\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/approvals/{{approvalId}}/approve"
+          }
+        },
+        {
+          "name": "Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"remarks\":\"Rejected through Postman\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/approvals/{{approvalId}}/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DealDesk - Webhook",
+      "item": [
+        {
+          "name": "Receive Signed Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Signature", "value": "{{webhookSignature}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"eventId\":\"postman-event-001\",\"externalId\":\"{{externalId}}\",\"status\":\"VIEWED\",\"sequence\":2,\"occurredAt\":\"2026-11-18T00:00:00.000Z\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{dealDeskUrl}}/api/billing/webhook"
+          },
+          "event": [{
+            "listen": "prerequest",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const raw = pm.request.body.raw;",
+                "const secret = pm.collectionVariables.get('sharedSecret');",
+                "const signature = CryptoJS.HmacSHA256(raw, secret).toString();",
+                "pm.request.headers.upsert({key:'X-Signature', value:signature});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "BillPort - Billing",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Idempotency-Key", "value": "{{idempotencyKey}}"},
+              {"key": "X-Signature", "value": "{{requestSignature}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idempotencyKey\":\"{{idempotencyKey}}\",\"dealId\":\"{{dealId}}\",\"amount\":10000,\"customerName\":\"Postman Test Customer\"}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{billPortUrl}}/billing/invoices"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const raw = pm.request.body.raw;",
+                  "const secret = pm.collectionVariables.get('sharedSecret');",
+                  "const signature = CryptoJS.HmacSHA256(raw, secret).toString();",
+                  "pm.request.headers.upsert({key:'X-Signature', value:signature});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.externalId) pm.collectionVariables.set('externalId', data.externalId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "url": "{{billPortUrl}}/billing/invoices/{{externalId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BillPort - Webhook Test Controls",
+      "item": [
+        {
+          "name": "Block Webhooks",
+          "request": {
+            "method": "POST",
+            "url": "{{billPortUrl}}/admin/webhooks/block"
+          }
+        },
+        {
+          "name": "Unblock Webhooks",
+          "request": {
+            "method": "POST",
+            "url": "{{billPortUrl}}/admin/webhooks/unblock"
+          }
+        },
+        {
+          "name": "Replay Webhook 3 Times",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"deliveries\":3}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": "{{billPortUrl}}/admin/webhooks/{{externalId}}/replay"
+          }
+        },
+        {
+          "name": "Send Out-of-Order Webhook",
+          "request": {
+            "method": "POST",
+            "url": "{{billPortUrl}}/admin/webhooks/{{externalId}}/out-of-order"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BillPort - Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{billPortUrl}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}
